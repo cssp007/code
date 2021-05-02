@@ -1,0 +1,1148 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cimplyfive SSOTEST Infra
+
+#====================================================================Start Parameters Block============================================
+
+Parameters:
+  KeyName:
+    Description: Select the key name from the list
+    Type: AWS::EC2::KeyPair::KeyName
+
+  VPCCidrBlock:
+    Description: VPC CIDR Range
+    Type: String  
+    Default: 10.0.0.0/16 
+
+  CidrBlockForPublicSubnet1ANEW:
+    Description: CIDR Block for Public Subnet 1st AZ.
+    Type: String 
+    Default: 10.0.1.0/24 
+
+  CidrBlockForPrivateSubnet11ANEW:
+    Description: CIDR Block for Private Subnet1 1st AZ.
+    Type: String
+    Default: 10.0.2.0/24 
+
+  CidrBlockForPrivateSubnet21ANEW:
+    Description: CIDR Block for Private Subnet2 1st AZ.
+    Type: String
+    Default: 10.0.3.0/24 
+
+  CidrBlockForPublicSubnet1BNEW:
+    Description: CIDR Block for Public Subnet 2nd AZ.
+    Type: String 
+    Default: 10.0.4.0/24  
+
+  CidrBlockForPrivateSubnet11BNEW:
+    Description: CIDR Block for Private Subnet1 2nd AZ.
+    Type: String
+    Default: 10.0.5.0/24 
+
+  CidrBlockForPrivateSubnet21BNEW:
+    Description: CIDR Block for Private Subnet2 2nd AZ.
+    Type: String
+    Default: 10.0.6.0/24 
+  
+  InstanceTypeHADemoAPP1:
+    Description: Instance type for HA-Bliss-APP-1-1A
+    Type: String      
+    Default: t3a.medium
+
+  ImageIdHADemoAPP1:
+    Description: Image ID for HA-Bliss-APP-1-1A
+    Type: String      
+    Default: ami-0861fc19429bd59f3   
+
+  InstanceTypeAnnotationAppl1:
+    Description: Instance type for HA-Annotation-APP-1-1A
+    Type: String      
+    Default: t3a.medium
+
+  ImageIdAnnotationAppl1:
+    Description: Image ID for HA-Annotation-APP-1-1A
+    Type: String      
+    Default: ami-0ec9db653ca0eb8aa
+
+  InstanceTypeAnnotationAppDB1:
+    Description: Instance type for HA-Annotation-DB-1-1A
+    Type: String      
+    Default: t3a.small
+
+  ImageIdAnnotationAppDB1:
+    Description: Image ID for HA-Annotation-DB-1-1A
+    Type: String      
+    Default: ami-03a719734b4e7455a
+
+  InstanceTypeDemoBlissMongoReplica1:
+    Description: Instance type for HA-Bliss-Mongo-Replica-1-1A
+    Type: String      
+    Default: t3a.small
+
+  ImageIdDemoBlissMongoReplica1:
+    Description: Image ID for HA-Bliss-Mongo-Replica-1-1A
+    Type: String      
+    Default: ami-0984d6d1fc1f39e03
+
+  InstanceTypeHADemoAPP2:
+    Description: Instance type for HA-Bliss-APP-2-1B
+    Type: String      
+    Default: t3a.medium
+
+  ImageIdHADemoAPP2:
+    Description: Image ID for HA-Bliss-APP-2-1B
+    Type: String      
+    Default: ami-0cb5bbc1f423a66a1
+
+  InstanceTypeAnnotationAppl2:
+    Description: Instance type for HA-Annotation-APP-2-1B
+    Type: String      
+    Default: t3a.medium
+
+  ImageIdAnnotationAppl2:
+    Description: Image ID for HA-Annotation-APP-2-1B
+    Type: String      
+    Default: ami-013bcc204e148f835
+
+  InstanceTypeAnnotationAppDB2:
+    Description: Instance type for HA-Annotation-DB-2-1B
+    Type: String      
+    Default: t3a.small
+
+  ImageIdAnnotationAppDB2:
+    Description: Image ID for HA-Annotation-DB-2-1B
+    Type: String      
+    Default: ami-0886224fce123586a
+
+  InstanceTypeDemoBlissMongoReplica2:
+    Description: Instance type for HA-Bliss-Mongo-Replica-2-1B
+    Type: String      
+    Default: t3a.small
+
+  ImageIdDemoBlissMongoReplica2:
+    Description: Image ID for HA-Bliss-Mongo-Replica-2-1B
+    Type: String      
+    Default: ami-0066b8fa563b79766
+
+  InstanceTypeDemoBlissMongoReplicaArbiter:
+    Description: Instance type for HA-Bliss-Mongo-Replica-Arbiter-1B
+    Type: String      
+    Default: t3a.small
+
+  ImageIdDemoBlissMongoReplicaArbiter:
+    Description: Image ID for HA-Bliss-Mongo-Replica-Arbiter-1B
+    Type: String      
+    Default: ami-0996f92de23158123
+
+  IAMRoleHADemoAPP1:
+    Description: IAM Role for HA-Bliss-APP-1-1A
+    Type: String      
+    Default: AllInstanceRole
+
+  IAMRoleHADemoAPP2:
+    Description: IAM Role for HA-Bliss-APP-2-1B
+    Type: String      
+    Default: AllInstanceRole
+
+  ARNCertificate:
+    Description: Certificate ARN for ALB for port 443
+    Type: String
+    Default: arn:aws:acm:ap-southeast-1:357104276540:certificate/f01522bf-4ee9-4403-9571-51dcd69f7059
+    
+  RegardingBastionHost:
+    Description: Select below options for Bastion Host 
+    Type: String
+    AllowedValues: [ NewBastionHost, ExistingBastionHost ]
+    
+  ExistingBastionHostIPAddress:
+    Description: Please enter the IP address of Bastion Host if wants to attach Existing Bastion Host 
+    Type: String
+    
+  ImageIdBastionHost:
+    Description: Image ID for Bastion Host 
+    Type: String
+    Default: ami-01581ffba3821cdf3 
+    
+  InstanceTypeBastionHost:
+    Description: Instance Type for Bastion Host 
+    Type: String
+    Default: t2.micro    
+    
+
+#====================================================================End Parameters Block============================================
+
+#====================================================================Start Metadata Block============================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Regarding Bastion Host"   
+        Parameters:
+          - RegardingBastionHost
+          - ExistingBastionHostIPAddress
+      - Label:
+          default: Instance type and Image ID for Bastion Host if creating NEW.
+        Parameters:
+          - InstanceTypeBastionHost
+          - ImageIdBastionHost
+      - Label:
+          default: "VPC CIDR Block Configuration"   
+        Parameters:
+          - VPCCidrBlock
+      - Label:
+          default: "Subnet CIDR Block Configuration"          
+        Parameters:
+          - CidrBlockForPublicSubnet1ANEW
+          - CidrBlockForPrivateSubnet11ANEW
+          - CidrBlockForPrivateSubnet21ANEW
+          - CidrBlockForPublicSubnet1BNEW
+          - CidrBlockForPrivateSubnet11BNEW
+          - CidrBlockForPrivateSubnet21BNEW 
+      - Label:
+          default: Instance type and Image ID for HA-Demo-APP1
+        Parameters:
+          - InstanceTypeHADemoAPP1
+          - ImageIdHADemoAPP1
+      - Label:
+          default: Instance type and Image ID for Annotation-Appl-1
+        Parameters:
+          - InstanceTypeAnnotationAppl1
+          - ImageIdAnnotationAppl1
+      - Label:
+          default: Instance type and Image ID for Annotation-App-DB1
+        Parameters:
+          - InstanceTypeAnnotationAppDB1
+          - ImageIdAnnotationAppDB1
+      - Label:
+          default: Instance type and Image ID for Demo-Bliss-Mongo-Replica-1
+        Parameters:
+          - InstanceTypeDemoBlissMongoReplica1
+          - ImageIdDemoBlissMongoReplica1
+      - Label:
+          default: Instance type and Image ID for HA-Demo-APP-2
+        Parameters:
+          - InstanceTypeHADemoAPP2
+          - ImageIdHADemoAPP2
+      - Label:
+          default: Instance type and Image ID for Annotation-Appl-2
+        Parameters:
+          - InstanceTypeAnnotationAppl2
+          - ImageIdAnnotationAppl2
+      - Label:
+          default: Instance type and Image ID for Annotation-App-DB2
+        Parameters:
+          - InstanceTypeAnnotationAppDB2
+          - ImageIdAnnotationAppDB2
+      - Label:
+          default: Instance type and Image ID for Demo-Bliss-Mongo-Replica2
+        Parameters:
+          - InstanceTypeDemoBlissMongoReplica2
+          - ImageIdDemoBlissMongoReplica2
+      - Label:
+          default: Instance type and Image ID for Demo-Bliss-Mongo-Replica-Arbiter
+        Parameters:
+          - InstanceTypeDemoBlissMongoReplicaArbiter
+          - ImageIdDemoBlissMongoReplicaArbiter
+      - Label:
+          default: IAM Role for HA-Demo-APP1
+        Parameters:
+          - IAMRoleHADemoAPP1
+      - Label:
+          default: IAM Role for HA-Demo-APP2
+        Parameters:
+          - IAMRoleHADemoAPP2
+      - Label:
+          default: Select Key Pair
+        Parameters:
+          - KeyName
+      - Label:
+          default: SSL Certificate ARN
+        Parameters:
+          - ARNCertificate
+
+
+
+#====================================================================End Metadata Block============================================
+
+Conditions:
+  AttachedToExistingBastionHost: !Equals [ !Ref RegardingBastionHost, 'ExistingBastionHost' ]
+  CreateNewBastionHost: !Equals [ !Ref RegardingBastionHost, 'NewBastionHost' ]
+
+Resources:
+# ==============================Create VPC and Subnets========================
+# Create VPC
+  cimplyfiveVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VPCCidrBlock
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-VPC"
+
+# Create subnet with name PublicSubnet1ANEW
+  PublicSubnet1ANEW:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref cimplyfiveVPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Ref CidrBlockForPublicSubnet1ANEW
+      AvailabilityZone: !Select
+      - 0
+      - !GetAZs
+        Ref: 'AWS::Region'    
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-PublicSubnet-1A-NEW HA"
+
+# Create subnet with name PrivateSubnet11ANEW
+  PrivateSubnet11ANEW:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref cimplyfiveVPC
+      CidrBlock: !Ref CidrBlockForPrivateSubnet11ANEW
+      AvailabilityZone: !Select
+      - 0
+      - !GetAZs
+        Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-PrivateSubnet1-1A-NEW HA"
+
+# Create subnet with name PrivateSubnet21ANEW
+  PrivateSubnet21ANEW:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref cimplyfiveVPC
+      CidrBlock: !Ref CidrBlockForPrivateSubnet21ANEW
+      AvailabilityZone: !Select
+      - 0
+      - !GetAZs
+        Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-PrivateSubnet2-1A-NEW HA"
+
+# Create subnet with name PublicSubnet1BNEW
+  PublicSubnet1BNEW:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref cimplyfiveVPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Ref CidrBlockForPublicSubnet1BNEW
+      AvailabilityZone: !Select
+      - 1
+      - !GetAZs
+        Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-PublicSubnet-1B-NEW HA"
+
+# Create subnet with name PrivateSubnet11BNEW
+  PrivateSubnet11BNEW:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref cimplyfiveVPC
+      CidrBlock: !Ref CidrBlockForPrivateSubnet11BNEW
+      AvailabilityZone: !Select
+      - 1
+      - !GetAZs
+        Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-PrivateSubnet1-1B-NEW HA"
+
+# Create subnet with name PrivateSubnet21BNEW
+  PrivateSubnet21BNEW:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref cimplyfiveVPC
+      CidrBlock: !Ref CidrBlockForPrivateSubnet21BNEW
+      AvailabilityZone: !Select
+      - 1
+      - !GetAZs
+        Ref: 'AWS::Region'
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-PrivateSubnet2-1B-NEW HA"
+
+
+#==================================END VPC and Subnets=======================
+
+#==================================CREATE Public-RouteTable================================
+
+# Create RouteTable with name myRT
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: cimplyfiveVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-CF-Public-RouteTable"
+
+# Associate public subnets in IGW
+  SubnetRouteTableAssociationPublicSubnet1ANEW:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PublicSubnet1ANEW
+      RouteTableId:
+        Ref: PublicRouteTable
+
+  SubnetRouteTableAssociationPublicSubnet1BNEW:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PublicSubnet1BNEW
+      RouteTableId:
+        Ref: PublicRouteTable
+
+# Create InternetGateway with name CFIGW
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-CF-IGW"
+
+# Attach VPC in InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+         Ref: cimplyfiveVPC
+      InternetGatewayId:
+         Ref: InternetGateway
+
+# Add route in RouteTable to access Internet
+  RoutePubZone:
+    DependsOn:
+      - AttachGateway
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId:
+        Ref: 'InternetGateway'
+      RouteTableId:
+        Ref: 'PublicRouteTable'
+ 
+
+#========================END Public-RouteTable==============================
+
+#=====================START NAT GW====================================
+
+  NATPublicSubnet1ANEW:
+     Type: AWS::EC2::NatGateway
+     Properties:
+        AllocationId:
+           Fn::GetAtt:
+           - EIPPublicSubnet1ANEW
+           - AllocationId
+        SubnetId:
+           Ref: PublicSubnet1ANEW
+        Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-NAT-PublicSubnet-1A-NEW"
+
+  EIPPublicSubnet1ANEW:
+     DependsOn: AttachGateway
+     Type: AWS::EC2::EIP
+     Properties:
+        Domain: vpc
+
+  NATPublicSubnet1BNEW:
+     Type: AWS::EC2::NatGateway
+     Properties:
+        AllocationId:
+           Fn::GetAtt:
+           - EIPPublicSubnet1BNEW
+           - AllocationId
+        SubnetId:
+           Ref: PublicSubnet1BNEW
+        Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-NAT-PublicSubnet-1B-NEW"
+
+  EIPPublicSubnet1BNEW:
+     DependsOn: AttachGateway
+     Type: AWS::EC2::EIP
+     Properties:
+        Domain: vpc
+
+#=====================END NAT GW====================================
+
+#=====================Create Private-RouteTable-in-1st-AZ===================
+
+  PrivateRouteTable1A:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: cimplyfiveVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-CF-Private-RouteTable-in-1st-AZ"
+
+  SubnetRouteTableAssociationPrivateSubnet11ANEW:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PrivateSubnet11ANEW
+      RouteTableId:
+        Ref: PrivateRouteTable1A 
+
+  SubnetRouteTableAssociationPrivateSubnet21ANEW:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PrivateSubnet21ANEW
+      RouteTableId:
+        Ref: PrivateRouteTable1A
+
+  RoutePrivateRouteTable1A:
+    DependsOn:
+      - NATPublicSubnet1ANEW
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId:
+        Ref: 'NATPublicSubnet1ANEW'
+      RouteTableId:
+        Ref: 'PrivateRouteTable1A'
+
+
+#=======================END Private-RouteTable-in-1st-AZ=========================
+
+#=======================Create Private-RouteTable-in-2nd-AZ======================
+
+  PrivateRouteTable1B:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: cimplyfiveVPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-CF-Private-RouteTable-in-2nd-AZ"
+
+  SubnetRouteTableAssociationPrivateSubnet11BNEW:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PrivateSubnet11BNEW
+      RouteTableId:
+        Ref: PrivateRouteTable1B 
+
+  SubnetRouteTableAssociationPrivateSubnet21BNEW:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PrivateSubnet21BNEW
+      RouteTableId:
+        Ref: PrivateRouteTable1B 
+
+# Add route in RouteTable to access Internet
+  RoutePrivateRouteTable1B:
+    DependsOn:
+      - NATPublicSubnet1BNEW
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId:
+        Ref: 'NATPublicSubnet1BNEW'
+      RouteTableId:
+        Ref: 'PrivateRouteTable1B'
+
+#==========================END Private-RouteTable-in-2nd-AZ===================
+
+#========================CREATE SG ===========================================
+
+  SSHSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Condition: CreateNewBastionHost
+        Properties:
+            GroupDescription: 'SG for Bastion host on port 22'
+            GroupName: 'Bastion Host SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: 0.0.0.0/0
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Bastion Host SG"
+                 
+  SSHSecurityGroup1:
+        Type: AWS::EC2::SecurityGroup
+        Condition: AttachedToExistingBastionHost
+        Properties:
+            GroupDescription: 'SG for Bastion host on port 22'
+            GroupName: 'Bastion Host SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: !Ref ExistingBastionHostIPAddress
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Bastion Host SG"
+                  
+  BlissAppsSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'Bliss Apps SG'
+            GroupName: 'Bliss Apps SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  SourceSecurityGroupId: !Ref BlissALBSecurityGroup
+                - IpProtocol: tcp
+                  FromPort: 443
+                  ToPort: 443
+                  SourceSecurityGroupId: !Ref BlissALBSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Bliss Apps SG"
+                  
+  BlissDBsSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'Bliss DBs SG'
+            GroupName: 'Bliss DBs SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 27017
+                  ToPort: 27017
+                  SourceSecurityGroupId: !Ref BlissAppsSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Bliss DBs SG"
+                  
+  IngressBlissDBsSecurityGroup:
+     Type: 'AWS::EC2::SecurityGroupIngress'
+     Properties:
+        GroupId: !Ref BlissDBsSecurityGroup
+        IpProtocol: tcp
+        FromPort: 27017
+        ToPort: 27017
+        SourceSecurityGroupId: !GetAtt BlissDBsSecurityGroup.GroupId
+                  
+  AnnotentionAppsSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'Annotention Apps SG'
+            GroupName: 'Annotention Apps SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  SourceSecurityGroupId: !Ref BlissALBSecurityGroup
+                - IpProtocol: tcp
+                  FromPort: 443
+                  ToPort: 443
+                  SourceSecurityGroupId: !Ref BlissALBSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Annotention Apps SG"
+                  
+  AnnotentionDBsSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'Annotention DBs SG'
+            GroupName: 'Annotention DBs SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 5432
+                  ToPort: 5432
+                  SourceSecurityGroupId: !Ref AnnotentionAppsSecurityGroup
+                - IpProtocol: tcp
+                  FromPort: 9200
+                  ToPort: 9200
+                  SourceSecurityGroupId: !Ref AnnotentionAppsSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Annotention DBs SG"
+                  
+  IngressAnnotentionDBsSecurityGroupForPostgresql:
+     Type: 'AWS::EC2::SecurityGroupIngress'
+     Properties:
+        GroupId: !Ref AnnotentionDBsSecurityGroup
+        IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        SourceSecurityGroupId: !GetAtt AnnotentionDBsSecurityGroup.GroupId
+        
+  IngressAnnotentionDBsSecurityGroupForElasticseach:
+     Type: 'AWS::EC2::SecurityGroupIngress'
+     Properties:
+        GroupId: !Ref AnnotentionDBsSecurityGroup
+        IpProtocol: tcp
+        FromPort: 9200
+        ToPort: 9200
+        SourceSecurityGroupId: !GetAtt AnnotentionDBsSecurityGroup.GroupId
+
+# Create SecurityGroup for ALB to access port 80
+  BlissALBSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'SG for Bliss Apps ALB on ports 80 and 443'
+            GroupName: 'Bliss ALB SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  CidrIp: 0.0.0.0/0
+                - IpProtocol: tcp
+                  FromPort: 443
+                  ToPort: 443
+                  CidrIp: 0.0.0.0/0
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Bliss ALB SG"
+                  
+  AnnotentionALBSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'SG for Annotention Apps ALB on ports 80 and 443'
+            GroupName: 'Annotention ALB SG'
+            VpcId:
+              Ref: cimplyfiveVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  SourceSecurityGroupId: !Ref AnnotentionAppsSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub "${AWS::StackName}-CF Annotention ALB SG"
+#=====================END SG =================================
+
+#=====================START EC2===============================
+
+  BastionHost:
+    Type: 'AWS::EC2::Instance'
+    Condition: CreateNewBastionHost
+    Properties:
+      ImageId: !Ref ImageIdBastionHost
+      InstanceType: !Ref InstanceTypeBastionHost
+      SubnetId: !Ref PublicSubnet1ANEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Bastion-Host"
+
+# Create instance with name DemoBlissMongoReplica1
+  DemoBlissMongoReplica1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdDemoBlissMongoReplica1
+      InstanceType: !Ref InstanceTypeDemoBlissMongoReplica1
+      SubnetId: !Ref PrivateSubnet21ANEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref BlissDBsSecurityGroup
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-demo-bliss-mongo-replica-1"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: DB
+
+# Create instance with name AnnotationAppDB1
+  AnnotationAppDB1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdAnnotationAppDB1
+      InstanceType: !Ref InstanceTypeAnnotationAppDB1
+      SubnetId: !Ref PrivateSubnet21ANEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]  
+        - !Ref AnnotentionDBsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Annotation_App_DB1"
+        - Key: Application
+          Value: annotation
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: DB
+# Create instance with name AnnotationAppl1
+  AnnotationAppl1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdAnnotationAppl1
+      InstanceType: !Ref InstanceTypeAnnotationAppl1
+      SubnetId: !Ref PrivateSubnet11ANEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]  
+        - !Ref AnnotentionAppsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Annotation_Appl_1"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: App
+# Create instance with name HADemoAPP1
+  HADemoAPP1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdHADemoAPP1
+      InstanceType: !Ref InstanceTypeHADemoAPP1
+      SubnetId: !Ref PrivateSubnet11ANEW
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref IAMRoleHADemoAPP1
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref BlissAppsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-ha_demo_app1"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: App
+# Create instance with name HADemoAPP2
+  HADemoAPP2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdHADemoAPP2
+      InstanceType: !Ref InstanceTypeHADemoAPP2
+      SubnetId: !Ref PrivateSubnet11BNEW
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref IAMRoleHADemoAPP2
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref BlissAppsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-ha_demo_app2"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: App
+
+# Create instance with name AnnotationAppl2
+  AnnotationAppl2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdAnnotationAppl2
+      InstanceType: !Ref InstanceTypeAnnotationAppl2
+      SubnetId: !Ref PrivateSubnet11BNEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref AnnotentionAppsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Annotation_Appl_2"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: App
+
+# Create instance with name AnnotationAppDB2
+  AnnotationAppDB2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdAnnotationAppDB2
+      InstanceType: !Ref InstanceTypeAnnotationAppDB2
+      SubnetId: !Ref PrivateSubnet21BNEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref AnnotentionDBsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Annotation_App_DB2"
+        - Key: Application
+          Value: annotation
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: DB
+
+# Create instance with name DemoBlissMongoReplica2
+  DemoBlissMongoReplica2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdDemoBlissMongoReplica2
+      InstanceType: !Ref InstanceTypeDemoBlissMongoReplica2
+      SubnetId: !Ref PrivateSubnet21BNEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref BlissDBsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Demo_Bliss_Mongo_Replica_2"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: DB
+
+# Create instance with name DemoBlissMongoReplicaArbiter
+  DemoBlissMongoReplicaArbiter:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ImageIdDemoBlissMongoReplicaArbiter
+      InstanceType: !Ref InstanceTypeDemoBlissMongoReplicaArbiter
+      SubnetId: !Ref PrivateSubnet21BNEW
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !If [ AttachedToExistingBastionHost, !Ref SSHSecurityGroup1, !Ref SSHSecurityGroup ]
+        - !Ref BlissDBsSecurityGroup        
+      Tags: 
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-CF-Demo_Bliss_Mongo_Replica_Arbiter"
+        - Key: Application
+          Value: Bliss
+        - Key: Environment
+          Value: HA
+        - Key: Type
+          Value: DB
+
+#============================END EC2==========================================
+
+#=================================================CREATE PUBLIC AND PRIVATE ALB======================================
+# Application Load Balancer
+# Create TargetGroup with name EC2BLISSTargetGroup
+  BlissApplicationLoadBalancer:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        Scheme: internet-facing
+        Subnets:
+        - Ref: PublicSubnet1ANEW
+        - Ref: PublicSubnet1BNEW
+        SecurityGroups:
+        - Ref: BlissALBSecurityGroup
+
+#Create a Listener on Port 80
+  ALBBlissListenerNoSslCertificate:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - RedirectConfig:
+            Host: '#{host}'
+            Path: '/#{path}'
+            Port: '443'
+            Protocol: HTTPS
+            StatusCode: HTTP_301
+          Type: redirect
+      LoadBalancerArn: !Ref BlissApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+#Create a Listener on Port 443
+  ALBBlissListenerSslCertificate:
+    Type : AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Certificates:
+#        - ACMSSLCertificateArn: !Ref ARNCertificate
+        - CertificateArn: !Ref ARNCertificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref EC2BLISSTargetGroup
+      LoadBalancerArn: !Ref BlissApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+
+# Create a Target Group
+  EC2BLISSTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /cimplyfive/version.properties
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200,301
+      Name: !Sub "${AWS::StackName}-CF-Bliss-TargetGroup"
+      Port: 443
+      Protocol: HTTPS
+      ProtocolVersion: HTTP1
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '300'
+        - Key: load_balancing.algorithm.type 
+          Value:  'least_outstanding_requests'
+        - Key: stickiness.enabled
+          Value: true
+      Targets:
+      - Id:
+          Ref: HADemoAPP1
+        Port: 443
+      - Id:
+          Ref: HADemoAPP2
+        Port: 443
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Ref: 'cimplyfiveVPC'
+
+
+# Create TargetGroup with name EC2ANNOTATIONTargetGroup
+  EC2ANNOTATIONTargetGroup:
+     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+     Properties:
+       HealthCheckIntervalSeconds: 30
+       HealthCheckPath: /h/api
+       HealthCheckProtocol: HTTP
+       HealthCheckTimeoutSeconds: 15
+       HealthyThresholdCount: 5
+       Matcher:
+         HttpCode: '200'
+       Name: !Sub "${AWS::StackName}-CF-ANNOTATION-TargetGroup"
+       Port: 80
+       Protocol: HTTP
+       TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '300'
+        - Key: load_balancing.algorithm.type 
+          Value:  'least_outstanding_requests'
+        - Key: stickiness.enabled
+          Value: true
+       Targets:
+       - Id:
+           Ref: AnnotationAppl1
+         Port: 80
+       - Id:
+           Ref: AnnotationAppl2
+         Port: 80
+       UnhealthyThresholdCount: 3
+       VpcId:
+         Ref: 'cimplyfiveVPC'
+       Tags:
+       - Key: Name
+         Value: !Sub "${AWS::StackName}-EC2ANNOTATIONTargetGroup"
+       - Key: Port
+         Value: 80
+# Create Listener with name ALBANNOTATIONListener
+  ALBANNOTATIONListener:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      Properties:
+        DefaultActions:
+          - Type: forward
+            TargetGroupArn:
+              Ref: EC2ANNOTATIONTargetGroup
+        LoadBalancerArn:
+            Ref: AnnotationApplicationLoadBalancer
+        Port: 80
+        Protocol: HTTP
+# Create ApplicationLoadBalancer with name AnnotationApplicationLoadBalancer
+  AnnotationApplicationLoadBalancer:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        Scheme: internal
+        Subnets:
+        - Ref: PublicSubnet1ANEW
+        - Ref: PublicSubnet1BNEW
+        SecurityGroups:
+        - Ref: AnnotentionALBSecurityGroup
+
+#=================================================END PUBLIC AND PRIVATE ALB====================================
+
+
+Outputs:
+  InstanceIdDemoBlissMongoReplica1:
+    Description: Instance ID of HA-Bliss-Mongo-Replica-1-1A
+    Value: !Ref DemoBlissMongoReplica1
+
+  InstanceAvailabilityZoneDemoBlissMongoReplica1:
+    Description: Availability Zone of HA-Bliss-Mongo-Replica-1-1A
+    Value: !GetAtt DemoBlissMongoReplica1.AvailabilityZone
+
+  InstanceIdAnnotationAppDB1:
+    Description: Instance ID of HA-Bliss-DB-1-1A
+    Value: !Ref AnnotationAppDB1
+
+  InstanceAvailabilityZoneAnnotationAppDB1:
+    Description: Availability Zone of HA-Bliss-DB-1-1A
+    Value: !GetAtt AnnotationAppDB1.AvailabilityZone
+
+  InstanceIdAnnotationAppl1:
+    Description: Instance ID of HA-Annotation-APP-1-1A
+    Value: !Ref AnnotationAppl1
+
+  InstanceAvailabilityZoneAnnotationAppl1:
+    Description: Availability Zone of HA-Annotation-APP-1-1A
+    Value: !GetAtt AnnotationAppl1.AvailabilityZone
+
+  InstanceIdHADemoAPP1:
+    Description: Instance ID of HA-Bliss-APP-1-1A
+    Value: !Ref HADemoAPP1
+
+  InstanceAvailabilityZoneHADemoAPP1:
+    Description: Availability Zone of HA-Bliss-APP-1-1A
+    Value: !GetAtt HADemoAPP1.AvailabilityZone
+
+  InstanceIdHADemoAPP2:
+    Description: Instance ID of HA-Bliss-APP-2-1B
+    Value: !Ref HADemoAPP2
+
+  InstanceAvailabilityZoneHADemoAPP2:
+    Description: Availability Zone of HA-Bliss-APP-2-1B
+    Value: !GetAtt HADemoAPP2.AvailabilityZone
+
+  InstanceIdAnnotationAppl2:
+    Description: Instance ID of HA-Annotation-APP-2-1B
+    Value: !Ref AnnotationAppl2
+
+  InstanceAvailabilityZoneAnnotationAppl2:
+    Description: Availability Zone of HA-Annotation-APP-2-1B
+    Value: !GetAtt AnnotationAppl2.AvailabilityZone
+
+  InstanceIdAnnotationAppDB2:
+    Description: Instance ID of HA-Annotation-DB-2-1B
+    Value: !Ref AnnotationAppDB2
+
+  InstanceAvailabilityZoneAnnotationAppDB2:
+    Description: Availability Zone of HA-Annotation-DB-2-1B
+    Value: !GetAtt AnnotationAppDB2.AvailabilityZone
+
+  InstanceIdDemoBlissMongoReplica2:
+    Description: Instance ID of HA-Bliss-Mongo-Replica-DB-2-1B
+    Value: !Ref DemoBlissMongoReplica2
+
+  InstanceAvailabilityZoneDemoBlissMongoReplica2:
+    Description: Availability Zone of HA-Bliss-Mongo-Replica-DB-2-1B
+    Value: !GetAtt DemoBlissMongoReplica2.AvailabilityZone
+
+  InstanceIdDemoBlissMongoReplicaArbiter:
+    Description: Instance ID of HA-Bliss-Mongo-Replica-Arbiter-1B
+    Value: !Ref DemoBlissMongoReplicaArbiter
+
+  InstanceAvailabilityZoneDemoBlissMongoReplicaArbiter:
+    Description: Availability Zone of HA-Bliss-Mongo-Replica-Arbiter-1B
+    Value: !GetAtt DemoBlissMongoReplicaArbiter.AvailabilityZone 
+
